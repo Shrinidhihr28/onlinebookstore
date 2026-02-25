@@ -7,14 +7,6 @@ pipeline {
     }
 
     stages {
-
-        stage('Clone') {
-            steps {
-                git branch: 'master',
-                url: 'https://github.com/Shrinidhihr28/onlinebookstore.git'
-            }
-        }
-
         stage('Build') {
             steps {
                 sh 'mvn clean package'
