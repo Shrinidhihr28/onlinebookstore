@@ -3,9 +3,17 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "shrinidhihr28/onlinebookstore"
+        DOCKER_TAG = "${BUILD_NUMBER}"
     }
 
     stages {
+
+        stage('Clone') {
+            steps {
+                git branch: 'main',
+                url: 'https://github.com/YOUR_USERNAME/onlinebookstore.git'
+            }
+        }
 
         stage('Build') {
             steps {
@@ -21,41 +29,48 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                sh 'docker build -t $DOCKER_IMAGE .'
+                sh 'docker build -t $DOCKER_IMAGE:$DOCKER_TAG .'
             }
         }
 
         stage('Docker Login') {
             steps {
-                withCredentials([string(credentialsId: 'Shree7022@', variable: 'PASS')]) {
-                    sh 'echo $PASS | docker login -u shrinidhihr28 --password-stdin'
+                withCredentials([usernamePassword(
+                    credentialsId: 'docker-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                 }
             }
         }
 
         stage('Docker Push') {
             steps {
-                sh 'docker push $DOCKER_IMAGE'
+                sh 'docker push $DOCKER_IMAGE:$DOCKER_TAG'
             }
         }
 
         stage('Deploy to EC2') {
             steps {
-                sh '''
-                docker stop onlinebookstore || true
-                docker rm onlinebookstore || true
-                docker run -d -p 80:8080 --name onlinebookstore $DOCKER_IMAGE
-                '''
+                sh """
+                ssh -o StrictHostKeyChecking=no ec2-user@EC2_PUBLIC_IP '
+                docker pull $DOCKER_IMAGE:$DOCKER_TAG &&
+                docker stop bookstore || true &&
+                docker rm bookstore || true &&
+                docker run -d -p 8080:8080 --name bookstore $DOCKER_IMAGE:$DOCKER_TAG
+                '
+                """
             }
         }
     }
 
     post {
-        success {
-            echo 'Pipeline Successful'
-        }
         failure {
-            echo 'Pipeline Failed'
+            echo "Pipeline Failed"
+        }
+        success {
+            echo "Deployment Successful"
         }
     }
 }
