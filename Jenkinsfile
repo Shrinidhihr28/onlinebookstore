@@ -11,7 +11,7 @@ pipeline {
         stage('Clone') {
             steps {
                 git branch: 'main',
-                url: 'https://github.com/YOUR_USERNAME/onlinebookstore.git'
+                url: 'https://github.com/Shrinidhihr28/onlinebookstore.git'
             }
         }
 
