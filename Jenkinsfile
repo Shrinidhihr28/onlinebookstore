@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "yourdockerhubusername/onlinebookstore"
+        DOCKER_IMAGE = "shrinidhihr28/onlinebookstore"
         DOCKER_TAG = "${BUILD_NUMBER}"
     }
 
@@ -11,7 +11,7 @@ pipeline {
         stage('Clone') {
             steps {
                 git branch: 'main',
-                url: 'https://github.com/YOUR_USERNAME/onlinebookstore.git'
+                url: 'https://github.com/Shrinidhihr28/onlinebookstore.git'
             }
         }
 
