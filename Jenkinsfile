@@ -10,7 +10,7 @@ pipeline {
 
         stage('Clone') {
             steps {
-                git branch: 'main',
+                git branch: 'master',
                 url: 'https://github.com/Shrinidhihr28/onlinebookstore.git'
             }
         }
