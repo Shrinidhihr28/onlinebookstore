@@ -3,17 +3,9 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "shrinidhihr28/onlinebookstore"
-        DOCKER_TAG = "${BUILD_NUMBER}"
     }
 
     stages {
-
-        stage('Clone') {
-            steps {
-                git branch: 'master',
-                url: 'https://github.com/Shrinidhihr28/onlinebookstore.git'
-            }
-        }
 
         stage('Build') {
             steps {
@@ -29,48 +21,41 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                sh 'docker build -t $DOCKER_IMAGE:$DOCKER_TAG .'
+                sh 'docker build -t $DOCKER_IMAGE .'
             }
         }
 
         stage('Docker Login') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'docker-creds',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                withCredentials([string(credentialsId: 'dockerhub-password', variable: 'PASS')]) {
+                    sh 'echo $PASS | docker login -u shrinidhihr28 --password-stdin'
                 }
             }
         }
 
         stage('Docker Push') {
             steps {
-                sh 'docker push $DOCKER_IMAGE:$DOCKER_TAG'
+                sh 'docker push $DOCKER_IMAGE'
             }
         }
 
         stage('Deploy to EC2') {
             steps {
-                sh """
-                ssh -o StrictHostKeyChecking=no ec2-user@EC2_PUBLIC_IP '
-                docker pull $DOCKER_IMAGE:$DOCKER_TAG &&
-                docker stop bookstore || true &&
-                docker rm bookstore || true &&
-                docker run -d -p 8080:8080 --name bookstore $DOCKER_IMAGE:$DOCKER_TAG
-                '
-                """
+                sh '''
+                docker stop onlinebookstore || true
+                docker rm onlinebookstore || true
+                docker run -d -p 80:8080 --name onlinebookstore $DOCKER_IMAGE
+                '''
             }
         }
     }
 
     post {
-        failure {
-            echo "Pipeline Failed"
-        }
         success {
-            echo "Deployment Successful"
+            echo 'Pipeline Successful'
+        }
+        failure {
+            echo 'Pipeline Failed'
         }
     }
 }
