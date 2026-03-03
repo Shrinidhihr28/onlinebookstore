@@ -15,5 +15,6 @@ spec:
       containers:
       - name: onlinebookstore
         image: onlinebookstore:latest
+        imagePullPolicy: Never
         ports:
         - containerPort: 8080
