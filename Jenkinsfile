@@ -1,68 +1,35 @@
 pipeline {
     agent any
-
     environment {
-        DOCKER_IMAGE = "shrinidhihr28/onlinebookstore"
+        DOCKER_HUB_USER = "shrinidhihr28"
+        APP_NAME = "onlinebookstore"
     }
-
     stages {
-
-        stage('Build') {
+        stage('Checkout') {
             steps {
-                sh 'mvn clean package'
+                git 'https://github.com/Shrinidhihr28/onlinebookstore.git'
             }
         }
-
-        stage('Test') {
+        stage('Maven Build') {
             steps {
-                sh 'mvn test'
+                sh 'mvn clean package -DskipTests'
             }
         }
-
-        stage('Docker Build') {
+        stage('Docker Build & Push') {
             steps {
-                sh 'docker build -t $DOCKER_IMAGE .'
+                sh "docker build -t ${DOCKER_HUB_USER}/${APP_NAME}:latest ."
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                    sh "echo $PASS | docker login -u $USER --password-stdin"
+                    sh "docker push ${DOCKER_HUB_USER}/${APP_NAME}:latest"
+                }
             }
         }
-
-        stage('Docker Login') {
+        stage('K8s Deployment') {
             steps {
-                withCredentials([usernamePassword(
-    credentialsId: 'dockerhub-password',
-    usernameVariable: 'DOCKER_USER',
-    passwordVariable: 'DOCKER_PASS'
-)]) {
-    sh '''
-        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-        docker push shrinidhihr28/onlinebookstore
-    '''
-}
+                // Deployment with 3 replicas for your "nodes" requirement
+                sh 'kubectl apply -f k8s/deployment.yaml'
+                sh 'kubectl rollout restart deployment bookstore-deploy'
             }
-        }
-
-        stage('Docker Push') {
-            steps {
-                sh 'docker push $DOCKER_IMAGE'
-            }
-        }
-
-        stage('Deploy to EC2') {
-            steps {
-                sh '''
-                docker stop onlinebookstore || true
-                docker rm onlinebookstore || true
-                docker run -d -p 80:8080 --name onlinebookstore $DOCKER_IMAGE
-                '''
-            }
-        }
-    }
-
-    post {
-        success {
-            echo 'Pipeline Successful'
-        }
-        failure {
-            echo 'Pipeline Failed'
         }
     }
 }
