@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: bookstore-app
-        image: your-dockerhub-username/onlinebookstore:latest
+        image: shrinidhihr28/onlinebookstore:latest
         ports:
         - containerPort: 8080
 ---
